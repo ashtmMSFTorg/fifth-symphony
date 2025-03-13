@@ -151,14 +151,14 @@ configure_orchestrator() {
   if [[ $is_mac == 0 ]]; then
     sedCommand="sed -i '' -e "
   fi
-  eval "git grep -l 'devops-symphony-362' | xargs $sedCommand \"s/devops-symphony-362/${SYMPHONY_RG_NAME}/g\""
+  eval "git grep -l 'rg-emxbcout-207' | xargs $sedCommand \"s/rg-emxbcout-207/${SYMPHONY_RG_NAME}/g\""
   eval "git grep -l 'AzureCloud' -- ':!*_helpers.sh' | xargs $sedCommand \"s/AzureCloud/$SP_CLOUD_ENVIRONMENT/g\""
 
   if [ "$IACTOOL" == "bicep" ]; then
     create_pipelines_bicep
   else
     # Update SA state Name
-    eval "git grep -l 'symphonyremotestate360' | xargs $sedCommand \"s/symphonyremotestate360/${SYMPHONY_SA_STATE_NAME}/g\""
+    eval "git grep -l 'saemxbcout207' | xargs $sedCommand \"s/saemxbcout207/${SYMPHONY_SA_STATE_NAME}/g\""
     create_pipelines_terraform
   fi
 
