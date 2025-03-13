@@ -1,0 +1,58 @@
+---
+name: "Template-Query-Event"
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    outputs:
+      events:
+        description: "Json array with events"
+        value: ${{ jobs.QueryEvent.outputs.events}}
+    inputs:
+      pipelineName:
+        type: string
+        required: true
+      eventName:
+        type: string
+        required: true
+      eventGroupId:
+        type: string
+        required: true
+      githubEnvironment:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  QueryEvent:
+    name: Query Events
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.githubEnvironment }}
+    outputs:
+      events: ${{ steps.QueryEvents.outputs.events }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        name: Run Azure Login
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Query Events
+        id: QueryEvents
+        env:
+          WORKSPACE_PATH: ${{ github.workspace }}
+        run: |
+          export EVENTS_STORAGE_ACCOUNT=${{ vars.EVENTS_STORAGE_ACCOUNT }}
+          export EVENTS_TABLE_NAME=${{ vars.EVENTS_TABLE_NAME }}
+
+          source ./events.sh
+
+          events=$(query_events "${{ inputs.pipelineName }}" "${{ inputs.eventName }}" "${{ inputs.eventGroupId }}")
+          echo "events=$events" >> $GITHUB_OUTPUT
+
+        working-directory: scripts/orchestrators

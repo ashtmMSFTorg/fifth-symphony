@@ -1,0 +1,64 @@
+---
+name: "Template-TF-PreviewDeploy"
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      environmentName:
+        type: string
+        required: true
+      environmentDirectory:
+        type: string
+        required: true
+      terraformVersion:
+        type: string
+        required: true
+      branchName:
+        type: string
+        required: true
+      githubEnvironment:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  PreviewDeploy:
+    name: "Preview and Deploy"
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.githubEnvironment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branchName }}
+
+      - name: Setup Toolset
+        run: |
+          ./setup-azcli.sh
+          ./setup-terraform.sh ${{ inputs.terraformVersion }}
+        working-directory: scripts/orchestrators
+        shell: bash
+
+      - uses: azure/login@v2
+        name: Run Azure Login
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run TF plan- Apply
+        env:
+          ENVIRONMENT_NAME: ${{ inputs.environmentName }}
+          ENVIRONMENT_DIRECTORY: ${{ inputs.environmentDirectory }}
+          WORKSPACE_PATH: ${{ github.workspace }}
+        run: |
+          export STATE_RG=${{ vars.STATE_RG }}
+          export STATE_STORAGE_ACCOUNT=${{ vars.STATE_STORAGE_ACCOUNT }}
+          export STATE_CONTAINER=${{ vars.STATE_CONTAINER }}
+          export TF_VAR_env=${{ inputs.environmentName }}
+          ./iac.tf.previewdeploy.sh
+
+        working-directory: scripts/orchestrators
+        shell: bash

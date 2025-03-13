@@ -1,0 +1,40 @@
+---
+name: PR Cleanup Terraform
+
+on: # yamllint disable-line rule:truthy
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - main
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+
+env:
+  TERRAFORM_VERSION: "1.6.2"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  Setup:
+    runs-on: ubuntu-latest
+    outputs:
+      terraformVersion: ${{ steps.setValues.outputs.terraformVersion }}
+    steps:
+      - name: Set Values
+        id: setValues
+        run: |
+          # shellcheck source=/dev/null
+          echo "terraformVersion=$TERRAFORM_VERSION" >> $GITHUB_OUTPUT
+
+  Cleanup:
+    needs: [Setup]
+    uses: ./.github/workflows/template.terraform.cleanup.yml
+    with:
+      pullRequestNumber: ${{ github.event.pull_request.number }}
+      terraformVersion: ${{ needs.Setup.outputs.terraformVersion }}
+      githubEnvironment: symphony
+    secrets: inherit
